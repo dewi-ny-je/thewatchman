@@ -221,6 +221,22 @@ def get_entity_state(
     return state, name
 
 
+def get_tracked_state(entity_id: str, state: Any) -> str:
+    """Return the state as tracked by Watchman for a state machine value.
+
+    Counterpart of `get_entity_state` for a state object taken from a state
+    change event: a missing state object means the entity is not in the state
+    machine ("missing") and stateless domains never report "unknown".
+    """
+    if state is None:
+        return TRACKED_STATE_MISSING
+
+    val = str(state.state if hasattr(state, "state") else state)
+    if val == TRACKED_STATE_UNKNOWN and split_entity_id(entity_id)[0] in STATELESS_DOMAINS:
+        return "available"
+    return val
+
+
 def format_state(state: str) -> str:
     """Format state for reports and UI (presentation logic)."""
     if state == TRACKED_STATE_REGISTRY_DISABLED:

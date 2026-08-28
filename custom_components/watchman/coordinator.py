@@ -16,13 +16,7 @@ from homeassistant.const import (
     EVENT_SERVICE_REGISTERED,
     EVENT_SERVICE_REMOVED,
 )
-from homeassistant.core import (
-    CALLBACK_TYPE,
-    Event,
-    HomeAssistant,
-    callback,
-    split_entity_id,
-)
+from homeassistant.core import CALLBACK_TYPE, Event, HomeAssistant, callback
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.debounce import Debouncer
 from homeassistant.helpers.entity_registry import EVENT_ENTITY_REGISTRY_UPDATED
@@ -56,11 +50,8 @@ from .const import (
     STATE_PENDING,
     STATE_SAFE_MODE,
     STATE_WAITING_HA,
-    STATELESS_DOMAINS,
     STORAGE_KEY,
     STORAGE_VERSION,
-    TRACKED_STATE_MISSING,
-    TRACKED_STATE_UNKNOWN,
     WATCHED_EVENTS,
     WATCHED_SERVICES,
 )
@@ -71,6 +62,7 @@ from .utils.utils import (
     format_state,
     get_config,
     get_entity_state,
+    get_tracked_state,
     is_action,
     obfuscate_id,
 )
@@ -147,21 +139,6 @@ def _is_safe_to_report(
                  )
 
     return True
-
-
-def _get_tracked_state(entity_id: str, state: Any) -> str:
-    """Return the state as tracked by Watchman for a state machine value.
-
-    Mirrors `get_entity_state` for the state change event payload: a missing
-    state object means the entity is not in the state machine ("missing") and
-    stateless domains never report "unknown".
-    """
-    if state is None:
-        return TRACKED_STATE_MISSING
-    val = str(state.state if hasattr(state, "state") else state)
-    if val == TRACKED_STATE_UNKNOWN and split_entity_id(entity_id)[0] in STATELESS_DOMAINS:
-        return "available"
-    return val
 
 
 def check_single_entity_status( # noqa: PLR0911
@@ -778,8 +755,8 @@ class WatchmanCoordinator(DataUpdateCoordinator):
         # entity only becomes stale if its reportability changed, which also
         # covers transitions between two monitored states (e.g. missing ->
         # unavailable when "unavailable" is an ignored state).
-        old_reportable = _get_tracked_state(entity_id, old_state) in self.checked_states
-        new_reportable = _get_tracked_state(entity_id, new_state) in self.checked_states
+        old_reportable = get_tracked_state(entity_id, old_state) in self.checked_states
+        new_reportable = get_tracked_state(entity_id, new_state) in self.checked_states
         if old_reportable == new_reportable:
             return
 
