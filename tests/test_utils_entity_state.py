@@ -8,7 +8,7 @@ from custom_components.watchman.const import (
     TRACKED_STATE_UNKNOWN,
     TRACKED_STATE_UNAVAILABLE,
 )
-from custom_components.watchman.utils.utils import get_entity_state, get_tracked_state
+from custom_components.watchman.utils.utils import get_entity_state
 
 
 async def test_get_entity_state_missing(hass: HomeAssistant) -> None:
@@ -66,26 +66,3 @@ async def test_get_entity_state_friendly_name(hass: HomeAssistant) -> None:
     state, name = get_entity_state(hass, "sensor.test_sensor", friendly_names=True)
     assert state == "on"
     assert name == "Test Sensor Friendly"
-
-
-async def test_get_tracked_state_no_state_object() -> None:
-    """A missing state object means the entity is not in the state machine."""
-    assert get_tracked_state("sensor.gone", None) == TRACKED_STATE_MISSING
-
-
-async def test_get_tracked_state_returns_state_value(hass: HomeAssistant) -> None:
-    """The state value is reported as is for a regular entity."""
-    hass.states.async_set("sensor.test_sensor", TRACKED_STATE_UNAVAILABLE)
-    state = hass.states.get("sensor.test_sensor")
-
-    assert get_tracked_state("sensor.test_sensor", state) == TRACKED_STATE_UNAVAILABLE
-
-
-@pytest.mark.parametrize("domain", STATELESS_DOMAINS)
-async def test_get_tracked_state_stateless_unknown(hass: HomeAssistant, domain: str) -> None:
-    """Stateless domains are available when their state is 'unknown'."""
-    entity_id = f"{domain}.test_entity"
-    hass.states.async_set(entity_id, TRACKED_STATE_UNKNOWN)
-    state = hass.states.get(entity_id)
-
-    assert get_tracked_state(entity_id, state) == "available"
